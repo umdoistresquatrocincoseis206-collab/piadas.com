@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Piadômetro — placar</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕹️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#1B1330; --panel:#251A3F; --panel-2:#2F2150;
+    --amber:#FFB13B; --cyan:#4FE3C1; --magenta:#FF4FA3;
+    --ink:#F4F0FF; --muted:#B7ADD6;
+    --border: rgba(244,240,255,.14);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{
+    margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+    font-family:'Space Grotesk',sans-serif;
+    padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(255,177,59,.08), transparent 45%),
+      radial-gradient(circle at 90% 15%, rgba(79,227,193,.08), transparent 45%);
+  }
+  .wrap{max-width:640px;margin:0 auto;padding:34px 18px 60px;}
+
+  header{text-align:center;margin-bottom:22px;}
+  .tag{font-family:'Press Start 2P',monospace;font-size:.55rem;color:var(--cyan);letter-spacing:.05em;}
+  h1{font-family:'Press Start 2P',monospace;font-size:clamp(1.1rem,5vw,1.6rem);margin:.6em 0 0;line-height:1.5;color:var(--amber);text-shadow:0 0 14px rgba(255,177,59,.4);}
+  .sub{font-size:.85rem;color:var(--muted);margin-top:8px;}
+
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);}
+  .panel h2{font-family:'Press Start 2P',monospace;font-size:.68rem;color:var(--muted);margin:0 0 14px;letter-spacing:.03em;}
+
+  .score{text-align:center;padding:6px 0 4px;}
+  #total{font-family:'Press Start 2P',monospace;font-size:clamp(2.4rem,13vw,3.6rem);color:var(--amber);text-shadow:0 0 18px rgba(255,177,59,.45);letter-spacing:.02em;}
+  .score-label{font-size:.8rem;color:var(--muted);margin-top:6px;}
+  .caption{text-align:center;font-size:.92rem;color:var(--cyan);margin:10px 0 0;min-height:1.4em;}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0;}
+  @media (max-width:440px){ .row2{grid-template-columns:1fr;} }
+  .mini{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:14px;text-align:center;}
+  .mini .n{font-family:'Press Start 2P',monospace;font-size:1.3rem;color:var(--magenta);}
+  .mini .l{font-size:.75rem;color:var(--muted);margin-top:4px;}
+
+  .goal-bar{background:var(--panel-2);border-radius:999px;height:16px;overflow:hidden;border:1px solid var(--border);}
+  .goal-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--amber));width:0%;transition:width .5s ease;}
+  .goal-text{font-size:.82rem;color:var(--muted);margin-top:8px;}
+  .goal-setup{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+  .goal-setup input{flex:1 1 120px;}
+
+  .chart{display:flex;align-items:flex-end;gap:8px;height:90px;padding-top:8px;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .bar{width:100%;max-width:26px;background:linear-gradient(180deg,var(--cyan),var(--panel-2));border-radius:4px 4px 0 0;min-height:3px;}
+  .bar-day{font-size:.62rem;color:var(--muted);}
+
+  .add-row{display:flex;gap:10px;flex-wrap:wrap;}
+  input[type=number], input[type=text], input[type=date]{
+    font-family:'Space Grotesk',sans-serif;font-size:.95rem;
+    border:1px solid var(--border);border-radius:8px;padding:10px 11px;
+    background:var(--panel-2);color:var(--ink);outline-offset:2px;
+  }
+  #amount{width:84px;flex:0 0 84px;}
+  #note{flex:1 1 150px;min-width:110px;}
+  button{
+    font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:.92rem;
+    border:1px solid var(--border);border-radius:8px;padding:10px 16px;
+    background:var(--amber);color:#1B1330;cursor:pointer;transition:filter .12s, transform .12s;
+  }
+  button:hover{filter:brightness(1.08);}
+  button:active{transform:scale(.97);}
+  button:focus-visible, input:focus-visible{outline:2.5px solid var(--cyan);}
+  #addBtn{width:100%;margin-top:12px;}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--border);}
+  .btn-small{padding:6px 10px;font-size:.78rem;}
+
+  .badges{display:flex;flex-wrap:wrap;gap:8px;}
+  .badge{border-radius:999px;padding:6px 12px;font-size:.78rem;border:1px solid var(--border);}
+  .badge.on{background:var(--panel-2);color:var(--amber);border-color:var(--amber);}
+  .badge.off{color:var(--muted);opacity:.5;}
+
+  .log-list{list-style:none;margin:0;padding:0;max-height:280px;overflow-y:auto;}
+  .log-list li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 2px;border-bottom:1px solid var(--border);font-size:.9rem;}
+  .log-list li:last-child{border-bottom:none;}
+  .log-left{display:flex;flex-direction:column;}
+  .log-note{color:var(--ink);}
+  .log-date{font-size:.72rem;color:var(--muted);}
+  .log-right{display:flex;align-items:center;gap:8px;}
+  .log-amt{font-family:'Press Start 2P',monospace;font-size:.85rem;color:var(--cyan);white-space:nowrap;}
+  .icon-btn{background:none;border:none;color:var(--muted);font-size:.95rem;cursor:pointer;padding:2px 4px;}
+  .icon-btn:hover{color:var(--magenta);}
+  .log-empty{opacity:.6;padding:9px 2px;font-size:.85rem;}
+
+  .backup-row{display:flex;gap:10px;flex-wrap:wrap;}
+  #backupArea{width:100%;min-height:80px;font-family:monospace;font-size:.78rem;background:var(--panel-2);color:var(--ink);border:1px solid var(--border);border-radius:8px;padding:10px;margin-top:10px;display:none;}
+
+  footer{text-align:center;margin-top:6px;}
+  .reset-link{background:none;border:none;color:var(--muted);opacity:.7;font-size:.8rem;text-decoration:underline;cursor:pointer;}
+
+  .overlay{position:fixed;inset:0;background:rgba(10,6,20,.65);display:flex;align-items:center;justify-content:center;padding:20px;z-index:50;}
+  .overlay[hidden]{display:none;}
+  .modal{background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:26px;max-width:360px;width:100%;text-align:center;}
+  .modal h2{font-family:'Press Start 2P',monospace;font-size:1rem;margin:0 0 10px;color:var(--amber);}
+  .modal p{font-size:.86rem;color:var(--muted);margin:0 0 16px;}
+  .modal input{width:100%;text-align:center;font-size:1.2rem;margin-bottom:14px;}
+  .modal button{width:100%;}
+
+  .confetti{position:fixed;font-size:1.3rem;pointer-events:none;z-index:60;animation:pop 900ms ease-out forwards;}
+  @keyframes pop{0%{transform:translateY(0);opacity:1;}100%{transform:translateY(-85px);opacity:0;}}
+  @media (prefers-reduced-motion: reduce){ button,.confetti,.goal-fill{animation:none !important;transition:none !important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="tag">HIGH SCORE DE PIADAS</div>
+    <h1>PIADÔMETRO</h1>
+    <p class="sub">placar rumo ao 3º ano do ensino médio</p>
+    <p class="sub" id="status"></p>
+  </header>
+
+  <section class="panel score">
+    <span id="total">0</span>
+    <div class="score-label">piadas registradas</div>
+    <p class="caption" id="caption"></p>
+  </section>
+
+  <div class="row2">
+    <div class="mini"><span class="n" id="statStreak">0</span><span class="l">🔥 dias seguidos</span></div>
+    <div class="mini"><span class="n" id="statBest">0</span><span class="l">maior lote</span></div>
+  </div>
+
+  <section class="panel" id="goalPanel">
+    <h2>META</h2>
+    <div id="goalActive" style="display:none;">
+      <div class="goal-bar"><div class="goal-fill" id="goalFill"></div></div>
+      <p class="goal-text" id="goalText"></p>
+      <button class="btn-ghost btn-small" id="clearGoalBtn" type="button">remover meta</button>
+    </div>
+    <div id="goalForm">
+      <div class="goal-setup">
+        <input type="number" id="goalTarget" placeholder="meta de piadas" min="1">
+        <input type="date" id="goalDeadline" aria-label="Data alvo (opcional)">
+      </div>
+      <button class="btn-ghost btn-small" id="setGoalBtn" type="button" style="margin-top:10px;">definir meta</button>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>ÚLTIMOS 7 DIAS</h2>
+    <div class="chart" id="chart"></div>
+  </section>
+
+  <section class="panel">
+    <h2>MARCAR PIADAS</h2>
+    <div class="add-row">
+      <input type="number" id="amount" value="1" min="1" step="1" aria-label="Quantidade de piadas">
+      <input type="text" id="note" placeholder="de onde veio? (opcional)" aria-label="Observação">
+    </div>
+    <input type="text" id="who" placeholder="seu nome (aparece no histórico)" maxlength="30" aria-label="Seu nome" style="width:100%;margin-top:10px;">
+    <button id="addBtn" type="button">somar ao placar</button>
+  </section>
+
+  <section class="panel">
+    <h2>CONQUISTAS</h2>
+    <div class="badges" id="badges"></div>
+  </section>
+
+  <section class="panel">
+    <h2>HISTÓRICO</h2>
+    <ul class="log-list" id="logList"></ul>
+  </section>
+
+  <section class="panel">
+    <h2>BACKUP</h2>
+    <div class="backup-row">
+      <button class="btn-ghost btn-small" id="exportBtn" type="button">exportar dados</button>
+      <button class="btn-ghost btn-small" id="importBtn" type="button">importar dados</button>
+    </div>
+    <textarea id="backupArea" placeholder="cole aqui os dados para importar"></textarea>
+    <button class="btn-ghost btn-small" id="confirmImportBtn" type="button" style="display:none;margin-top:8px;">confirmar importação</button>
+  </section>
+
+  <footer>
+    <button class="reset-link" id="resetBtn" type="button">zerar tudo e começar de novo</button>
+  </footer>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>INICIAR PLACAR</h2>
+    <p>quantas piadas você já tem contadas até hoje? esse é só o número inicial — dá pra somar mais depois.</p>
+    <input type="number" id="baseline" value="0" min="0" step="1" aria-label="Contagem inicial de piadas">
+    <button id="startBtn" type="button">começar a contar</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+(function(){
+  var STORAGE_KEY = 'piadometro_arcade_v1';
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function load(){ try{ var raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : null; }catch(e){ return null; } }
+  function save(d){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(d)); }catch(e){} }
+  function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+  function fmt(n){ return n.toLocaleString('pt-BR'); }
+  function dateKey(iso){ return new Date(iso).toISOString().slice(0,10); }
+
+  var SUPABASE_URL = 'https://rmfpjxnkskseyskbevrc.supabase.co';      // ex: https://xxxx.supabase.co
+  var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtZnBqeG5rc2tzZXlza2JldnJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNTY0NTgsImV4cCI6MjEwNTgzMjQ1OH0._ZzVfqUGmWWeSAUSIAQ8NFqdboYY5W67CcuFopmT-Bg';   // Project Settings > API > anon public
+  var data = {entries:[],goal:null}, sb = null;
+  function fail(e){ console.error(e); alert('Não consegui salvar agora. Confira a conexão e tente de novo.'); }
+  function status(t){ document.getElementById('status').textContent = t; }
+  function myName(){
+    var w = document.getElementById('who').value.trim();
+    try{ localStorage.setItem('piadometro_nome', w); }catch(e){}
+    return w;
+  }
+  async function reload(){
+    var a = await sb.from('piadas').select('*').order('created_at');
+    if(a.error){ status('erro ao ler o banco: ' + a.error.message); return; }
+    data.entries = a.data.map(function(r){ return {id:r.id, amount:r.amount, note:r.note, at:r.created_at, by:r.autor}; });
+    var c = await sb.from('config').select('*').eq('id',1).maybeSingle();
+    if(!c.error){
+      data.goal = (c.data && c.data.goal_target) ? {target:c.data.goal_target, deadline:c.data.goal_deadline} : null;
+      overlay.hidden = !!c.data;
+    }
+    render();
+  }
+  async function addRow(a,n){
+    if(!sb) return fail('sem conexão');
+    var r = await sb.from('piadas').insert({amount:a, note:n, autor:myName()});
+    if(r.error) fail(r.error); else reload();
+  }
+  async function updateRow(e){
+    var r = await sb.from('piadas').update({amount:e.amount, note:e.note||''}).eq('id',e.id);
+    if(r.error) fail(r.error); else reload();
+  }
+  async function deleteRow(id){
+    var r = await sb.from('piadas').delete().eq('id',id);
+    if(r.error) fail(r.error); else reload();
+  }
+  async function saveMeta(g){
+    if(!sb) return fail('sem conexão');
+    var r = await sb.from('config').upsert({id:1, goal_target:g?g.target:null, goal_deadline:g?g.deadline:null});
+    if(r.error) fail(r.error); else reload();
+  }
+  async function startGame(base){
+    if(base > 0) await addRow(base, 'contagem inicial');
+    await saveMeta(null);
+  }
+  async function importAll(p){
+    var rows = p.entries.filter(function(e){ return e && e.amount > 0; }).map(function(e){
+      return {amount:e.amount, note:e.note||'', created_at:e.at||new Date().toISOString(), autor:e.by||''};
+    });
+    if(rows.length){ var r = await sb.from('piadas').insert(rows); if(r.error) return fail(r.error); }
+    if(p.goal) await saveMeta(p.goal); else reload();
+  }
+  async function resetAll(){
+    await sb.from('piadas').delete().neq('id','00000000-0000-0000-0000-000000000000');
+    await sb.from('config').delete().eq('id',1);
+    reload();
+  }
+  function init(){
+    try{ document.getElementById('who').value = localStorage.getItem('piadometro_nome') || ''; }catch(e){}
+    if(!window.supabase || SUPABASE_URL.indexOf('COLE_') === 0){ status('falta colar a URL e a chave do Supabase no começo do script'); return; }
+    sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    reload();
+    sb.channel('piadometro').on('postgres_changes', {event:'*', schema:'public'}, reload).subscribe();
+  }
+  var overlay = document.getElementById('overlay');
+
+  var BADGES = [
+    {t:10, label:'🎯 primeiras 10'},
+    {t:50, label:'😄 meio centão'},
+    {t:100, label:'💯 uma centena'},
+    {t:200, label:'🚀 200 piadas'},
+    {t:500, label:'👑 500 piadas'},
+    {t:1000, label:'🏆 lenda: 1000'}
+  ];
+
+  function captionFor(total){
+    if(total < 10) return 'só esquentando o placar.';
+    if(total < 50) return 'já rendeu risada de canto de sala.';
+    if(total < 100) return 'nível piada de pai confirmado.';
+    if(total < 200) return 'reputação de engraçadinho em jogo.';
+    if(total < 500) return 'trending no grupo da família.';
+    return 'lenda viva. stand-up é o próximo passo.';
+  }
+
+  function totalOf(d){ return d.entries.reduce(function(s,e){ return s+e.amount; }, 0); }
+
+  function computeStreak(d){
+    var days = {};
+    d.entries.forEach(function(e){ days[dateKey(e.at)] = true; });
+    var streak = 0;
+    var cur = new Date();
+    while(true){
+      var k = cur.toISOString().slice(0,10);
+      if(days[k]){ streak++; cur.setDate(cur.getDate()-1); }
+      else break;
+    }
+    return streak;
+  }
+
+  function render(){
+    var total = totalOf(data);
+    document.getElementById('total').textContent = fmt(total);
+    document.getElementById('caption').textContent = captionFor(total);
+    document.getElementById('statStreak').textContent = fmt(computeStreak(data));
+    document.getElementById('statBest').textContent = fmt(data.entries.reduce(function(m,e){ return Math.max(m,e.amount); },0));
+
+    renderGoal(total);
+    renderChart();
+    renderBadges(total);
+    renderLog();
+  }
+
+  function renderGoal(total){
+    var active = document.getElementById('goalActive');
+    var form = document.getElementById('goalForm');
+    if(data.goal && data.goal.target){
+      active.style.display = 'block';
+      form.style.display = 'none';
+      var pct = Math.min(100, Math.round((total/data.goal.target)*100));
+      document.getElementById('goalFill').style.width = pct + '%';
+      var remaining = Math.max(0, data.goal.target - total);
+      var txt = pct + '% da meta (' + fmt(data.goal.target) + ') · faltam ' + fmt(remaining);
+      if(data.goal.deadline){
+        var days = Math.ceil((new Date(data.goal.deadline) - new Date())/86400000);
+        if(days > 0 && remaining > 0){
+          txt += ' · ' + Math.ceil(remaining/days) + '/dia até ' + new Date(data.goal.deadline).toLocaleDateString('pt-BR');
+        } else if(days <= 0 && remaining > 0){
+          txt += ' · prazo estourado';
+        }
+      }
+      document.getElementById('goalText').textContent = txt;
+    } else {
+      active.style.display = 'none';
+      form.style.display = 'block';
+    }
+  }
+
+  function renderChart(){
+    var chart = document.getElementById('chart');
+    chart.innerHTML = '';
+    var totals = [];
+    var labels = ['D','S','T','Q','Q','S','S'];
+    var todayIdx = new Date().getDay();
+    for(var i=6;i>=0;i--){
+      var d = new Date(); d.setDate(d.getDate()-i);
+      var k = d.toISOString().slice(0,10);
+      var sum = data.entries.filter(function(e){ return dateKey(e.at) === k; }).reduce(function(s,e){ return s+e.amount; },0);
+      totals.push({sum:sum, label:labels[d.getDay()]});
+    }
+    var max = Math.max.apply(null, totals.map(function(t){ return t.sum; }).concat([1]));
+    totals.forEach(function(t){
+      var col = document.createElement('div');
+      col.className = 'bar-col';
+      var bar = document.createElement('div');
+      bar.className = 'bar';
+      bar.style.height = Math.max(3, Math.round((t.sum/max)*70)) + 'px';
+      var lbl = document.createElement('div');
+      lbl.className = 'bar-day';
+      lbl.textContent = t.label;
+      col.appendChild(bar); col.appendChild(lbl);
+      chart.appendChild(col);
+    });
+  }
+
+  function renderBadges(total){
+    var wrap = document.getElementById('badges');
+    wrap.innerHTML = '';
+    BADGES.forEach(function(b){
+      var span = document.createElement('span');
+      span.className = 'badge ' + (total >= b.t ? 'on' : 'off');
+      span.textContent = b.label;
+      wrap.appendChild(span);
+    });
+  }
+
+  function renderLog(){
+    var logList = document.getElementById('logList');
+    logList.innerHTML = '';
+    if(!data.entries.length){
+      var li = document.createElement('li');
+      li.className = 'log-empty';
+      li.textContent = 'nenhum registro ainda.';
+      logList.appendChild(li);
+      return;
+    }
+    data.entries.slice().reverse().forEach(function(e){
+      var li = document.createElement('li');
+      var left = document.createElement('div');
+      left.className = 'log-left';
+      var note = document.createElement('span');
+      note.className = 'log-note';
+      note.textContent = e.note || 'piada avulsa';
+      var d = new Date(e.at);
+      var date = document.createElement('span');
+      date.className = 'log-date';
+      date.textContent = d.toLocaleDateString('pt-BR') + ' · ' + d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) + (e.by ? ' · ' + e.by : '');
+      left.appendChild(note); left.appendChild(date);
+
+      var right = document.createElement('div');
+      right.className = 'log-right';
+      var amt = document.createElement('span');
+      amt.className = 'log-amt';
+      amt.textContent = '+' + fmt(e.amount);
+      var editBtn = document.createElement('button');
+      editBtn.className = 'icon-btn'; editBtn.type = 'button'; editBtn.textContent = '✎';
+      editBtn.setAttribute('aria-label','editar registro');
+      editBtn.addEventListener('click', function(){ editEntry(e.id); });
+      var delBtn = document.createElement('button');
+      delBtn.className = 'icon-btn'; delBtn.type = 'button'; delBtn.textContent = '✕';
+      delBtn.setAttribute('aria-label','excluir registro');
+      delBtn.addEventListener('click', function(){ deleteEntry(e.id); });
+      right.appendChild(amt); right.appendChild(editBtn); right.appendChild(delBtn);
+
+      li.appendChild(left); li.appendChild(right);
+      logList.appendChild(li);
+    });
+  }
+
+  function editEntry(id){
+    var entry = data.entries.find(function(e){ return e.id === id; });
+    if(!entry) return;
+    var val = prompt('Novo valor para este registro:', entry.amount);
+    if(val === null) return;
+    var n = parseInt(val,10);
+    if(!isNaN(n) && n > 0) entry.amount = n;
+    var note = prompt('Observação (deixe em branco para nenhuma):', entry.note || '');
+    if(note !== null) entry.note = note.trim();
+    updateRow(entry);
+  }
+
+  function deleteEntry(id){
+    if(!confirm('Excluir este registro?')) return;
+    deleteRow(id);
+  }
+
+  function countUp(from,to){
+    var el = document.getElementById('total');
+    if(reduceMotion || Math.abs(to-from) < 1){ el.textContent = fmt(to); return; }
+    var start=null, dur=500;
+    function step(ts){
+      if(!start) start=ts;
+      var p = Math.min((ts-start)/dur,1);
+      el.textContent = fmt(Math.round(from + (to-from)*(1-Math.pow(1-p,3))));
+      if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function burstConfetti(btn){
+    if(reduceMotion) return;
+    var emojis = ['😂','🎮','⭐'];
+    var rect = btn.getBoundingClientRect();
+    for(var i=0;i<5;i++){
+      var span = document.createElement('span');
+      span.className = 'confetti';
+      span.textContent = emojis[i % emojis.length];
+      span.style.left = (rect.left + rect.width/2 + (Math.random()*80-40)) + 'px';
+      span.style.top = (rect.top + (Math.random()*10)) + 'px';
+      document.body.appendChild(span);
+      setTimeout(function(el){ el.remove(); }, 950, span);
+    }
+  }
+
+  document.getElementById('addBtn').addEventListener('click', function(){
+    var amountInput = document.getElementById('amount');
+    var noteInput = document.getElementById('note');
+    var amount = parseInt(amountInput.value,10);
+    if(!amount || amount<1) amount = 1;
+    var prevTotal = totalOf(data);
+    addRow(amount, noteInput.value.trim());
+    countUp(prevTotal, prevTotal+amount);
+    burstConfetti(document.getElementById('addBtn'));
+    noteInput.value=''; amountInput.value=1; amountInput.focus();
+  });
+
+  document.getElementById('setGoalBtn').addEventListener('click', function(){
+    var target = parseInt(document.getElementById('goalTarget').value,10);
+    if(!target || target < 1){ alert('Informe um número de meta válido.'); return; }
+    var deadline = document.getElementById('goalDeadline').value || null;
+    saveMeta({target:target, deadline:deadline});
+  });
+  document.getElementById('clearGoalBtn').addEventListener('click', function(){
+    saveMeta(null);
+  });
+
+  document.getElementById('exportBtn').addEventListener('click', function(){
+    var area = document.getElementById('backupArea');
+    area.value = JSON.stringify(data, null, 2);
+    area.style.display = 'block';
+    area.focus(); area.select();
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(area.value).then(function(){
+        alert('Dados copiados para a área de transferência.');
+      }).catch(function(){});
+    }
+  });
+  document.getElementById('importBtn').addEventListener('click', function(){
+    var area = document.getElementById('backupArea');
+    area.value = '';
+    area.style.display = 'block';
+    document.getElementById('confirmImportBtn').style.display = 'inline-block';
+    area.focus();
+  });
+  document.getElementById('confirmImportBtn').addEventListener('click', function(){
+    var area = document.getElementById('backupArea');
+    try{
+      var parsed = JSON.parse(area.value);
+      if(!parsed || !Array.isArray(parsed.entries)) throw new Error('formato inválido');
+      importAll(parsed);
+      area.style.display = 'none';
+      document.getElementById('confirmImportBtn').style.display = 'none';
+      render();
+      alert('Dados importados com sucesso.');
+    }catch(e){
+      alert('Não consegui ler esses dados. Confira se colou o JSON certo.');
+    }
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    if(confirm('Isso apaga o histórico e a meta de TODO MUNDO. Tem certeza?')){
+      resetAll();
+    }
+  });
+
+  document.getElementById('startBtn').addEventListener('click', function(){
+    var base = parseInt(document.getElementById('baseline').value,10);
+    if(isNaN(base) || base < 0) base = 0;
+    startGame(base);
+  });
+
+  overlay.hidden = true; render(); init();
+})();
+</script>
+</body>
+</html>
